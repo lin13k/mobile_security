@@ -3,7 +3,7 @@ from django.db import transaction
 from control_server.models import Device, Event
 from control_server.serializers import EventSerializer
 from control_server.serializers import DeviceWriteSerializer
-
+from rest_framework.response import Response
 
 # class AlarmViewSet(viewsets.ModelViewSet):
 #     queryset = Alarm.objects.all()
@@ -45,3 +45,5 @@ class DeviceViewSet(viewsets.ModelViewSet):
         instance.alarm_type = request.data.get(
             'alarm_type', instance.alarm_type)
         instance.save()
+
+        return Response(self.get_serializer_class()(instance).data)
