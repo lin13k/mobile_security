@@ -1,0 +1,177 @@
+{% extends "control_server/base.html" %}
+{% load staticfiles %}
+{% block head %}
+	<script src="{% static 'control_server/js/control_server/device_list.js' %}"></script>
+{% endblock %}
+{% block headbar %}
+{% endblock %}
+{% block sidebar %}
+{% endblock %}
+{% block content %}
+	<script>
+		var directionService;
+		var directionsDisplay;
+		var map;
+		var events = [];
+	  	{% for event in device.events.all %}
+	  		events.push({lat:{{ event.latitude }}, lng:{{ event.longitude }} });
+	  	{% endfor %}
+		function initMap() {
+		   	//  directionsService = new google.maps.DirectionsService();
+		  	// directionsDisplay = new google.maps.DirectionsRenderer();
+		   	
+			
+		  	function getLocation() {
+			    if (navigator.geolocation) {
+			        navigator.geolocation.getCurrentPosition(function(position){
+			        	var mapOptions = {
+							zoom:17,
+							center: {
+								lat: position.coords.latitude,
+								lng: position.coords.longitude}
+					  	};
+			        	map = new google.maps.Map(document.getElementById('map'), mapOptions);
+			        	for (var i = events.length - 1; i >= 0; i--) {
+					  		events[i]
+					  		new google.maps.Marker({
+					            position: new google.maps.LatLng(events[i].lat,events[i].lng),
+					            map: map
+				          	});
+					  	}
+			        });
+			    } else { 
+			        x.innerHTML = "Geolocation is not supported by this browser.";
+			    }
+			}
+			getLocation();
+
+		}
+
+		function calcRoute() {
+		  	var start = '315 N Neville St Pittsburgh PA';
+
+		  	var way = []
+			{% for element in google_params.waypoints %}
+			way.push({location:"{{ element }}",stopover:true});
+			{% endfor %}
+
+		  	var request = {
+		  	    origin:start,
+				destination:'{{ google_params.destination }}',
+				travelMode: 'DRIVING',
+				waypoints: way,
+		  	};
+		  	directionsService.route(request, function(response, status) {
+				if (status == 'OK') {
+					directionsDisplay.setDirections(response);
+					var route = response.routes[0];
+					var summaryPanel = document.getElementById('directionsPanel');
+					summaryPanel.innerHTML = '';
+					// For each route, display summary information.
+					for (var i = 0; i < route.legs.length; i++) {
+                        var routeSegment = i + 1;
+                        summaryPanel.innerHTML += '<b>Route Segment: ' + routeSegment +
+                            '</b><br>';
+                        summaryPanel.innerHTML += route.legs[i].start_address + ' to ';
+                        summaryPanel.innerHTML += route.legs[i].end_address + '<br>';
+                        summaryPanel.innerHTML += route.legs[i].distance.text + '<br><br>';
+                    }
+				} else {
+				    window.alert('Directions request failed due to ' + status);
+				    console.log(response);
+				}
+		  	});
+		}
+	</script>
+	<script async defer
+    	src="https://maps.googleapis.com/maps/api/js?key={{ google_map_dir_key }}&callback=initMap" type="text/javascript">
+    </script>
+
+	<div class="row">
+		<div class="col-lg-3 col-md-3">
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					<h2><i class="fa fa-flag-o red"></i><strong>Device Detail</strong></h2>
+				</div>
+				<div class="panel-body">
+					<table class="table bootstrap-datatable countries">
+						<tbody>
+							<tr>
+								<td>IMEI</td>
+								<td>{{device.imei}}</td>
+							</tr>
+							<tr>
+								<td>Alarm Type</td>
+								<td>
+									<select id="device_assign_{{device.imei}}" onchange="selectHandler({{device.imei}})">
+										<option value="BL" onchange="selectHandler"
+											{% if not device.alarm_type or device.alarm_type == "BL" %}
+												selected="selected"
+											{% endif %}
+										>Block</option>
+										<option value="NT" onchange="selectHandler"
+											{% if device.alarm_type == "NT" %}
+												selected="selected"
+											{% endif %}
+										>Notification</option>
+									</select>
+								</td>
+							</tr>
+							<tr>
+								<td>Last Update Time</td>
+								<td>{{device.last_modify_time}}</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					<h2><i class="fa fa-flag-o red"></i><strong>Events</strong></h2>
+				</div>
+				<div class="panel-body">
+					<table class="table bootstrap-datatable countries">
+						<tbody>
+							<tr>
+								<td>Event ID</td>
+								<td>Event Time</td>
+							</tr>
+							<tr>
+								<td>Alarm Type</td>
+								<td>
+									<select id="device_assign_{{device.imei}}" onchange="selectHandler({{device.imei}})">
+										<option value="BL" onchange="selectHandler"
+											{% if not device.alarm_type or device.alarm_type == "BL" %}
+												selected="selected"
+											{% endif %}
+										>Block</option>
+										<option value="NT" onchange="selectHandler"
+											{% if device.alarm_type == "NT" %}
+												selected="selected"
+											{% endif %}
+										>Notification</option>
+									</select>
+								</td>
+							</tr>
+							<tr>
+								<td>Last Update Time</td>
+								<td>{{device.last_modify_time}}</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+		<div class="col-lg-9 col-md-9">
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					<h2><i class="fa fa-flag-o red"></i><strong>Address</strong></h2>
+				</div>
+				<div class="panel-body" style="height: 650px;">
+					<div id="map" style="float:left;width:100%; height:100%;"></div>
+				</div>
+			</div>
+		</div>
+	</div>
+	
+{% endblock %}

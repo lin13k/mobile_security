@@ -1,0 +1,247 @@
+{% extends "dashboard/base.html" %}
+{% load staticfiles %}
+{% block head %}
+	<script src="{% static 'dashboard/js/dashboard/deliverer_detail.js' %}"></script>
+{% endblock %}
+{% block headbar %}
+{% endblock %}
+{% block sidebar %}
+	{% if request.user.is_staff %}
+	<li class="active">
+		<a class="" href="{% url 'order_list'%}">
+			<i class="icon_house_alt"></i>
+			<span>Order List</span>
+		</a>
+	</li>
+	{% endif %}
+	{% if is_deliverer %}
+	<li class="sub-menu">
+		<a class="" href="{% url 'deliverer_order_list'%}">
+			<i class="icon_document_alt"></i>
+			<span>Assigned List</span>
+		</a>
+	</li>
+	{% endif %}
+{% endblock %}
+{% block content %}
+<script>
+	var directionService;
+	var directionsDisplay;
+
+		function initMap() {
+		    directionsService = new google.maps.DirectionsService();
+		  	directionsDisplay = new google.maps.DirectionsRenderer();
+		  	cmu = new google.maps.LatLng(40.400152, -80.103075);
+		  	mapOptions = {
+				zoom:7,
+				center: cmu
+		  	};
+		  	map = new google.maps.Map(document.getElementById('map'), mapOptions);
+		  	directionsDisplay.setMap(map);
+		  	directionsDisplay.setPanel(document.getElementById('directionsPanel'));
+		  	calcRoute()
+		}
+
+		function calcRoute() {
+		  	var start = '315 N Neville St Pittsburgh PA';
+
+		  	var way = []
+			{% for element in google_params.waypoints %}
+			way.push({location:"{{ element }}",stopover:true});
+			{% endfor %}
+
+		  	var request = {
+		  	    origin:start,
+				destination:'{{ google_params.destination }}',
+				travelMode: 'DRIVING',
+				waypoints: way,
+		  	};
+		  	directionsService.route(request, function(response, status) {
+				if (status == 'OK') {
+					directionsDisplay.setDirections(response);
+					var route = response.routes[0];
+					var summaryPanel = document.getElementById('directionsPanel');
+					summaryPanel.innerHTML = '';
+					// For each route, display summary information.
+					for (var i = 0; i < route.legs.length; i++) {
+                        var routeSegment = i + 1;
+                        summaryPanel.innerHTML += '<b>Route Segment: ' + routeSegment +
+                            '</b><br>';
+                        summaryPanel.innerHTML += route.legs[i].start_address + ' to ';
+                        summaryPanel.innerHTML += route.legs[i].end_address + '<br>';
+                        summaryPanel.innerHTML += route.legs[i].distance.text + '<br><br>';
+                    }
+				} else {
+				    window.alert('Directions request failed due to ' + status);
+				    console.log(response);
+				}
+		  	});
+		}
+	</script>
+
+	<script async defer
+    	src="https://maps.googleapis.com/maps/api/js?key={{ google_params.key }}&callback=initMap" type="text/javascript">
+    </script>
+
+	<div class="row">
+		<div class="col-lg-12">
+			<h3 class="page-header"><i class="fa fa-laptop"></i> Dashboard</h3>
+			<ol class="breadcrumb">
+				<li><i class="fa fa-home"></i><a href={% url 'deliverer_order_list'%}>Assigned List</a></li>
+				<li><i class="fa fa-laptop"></i>Order {{order.id}}</li>
+			</ol>
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-lg-6 col-md-6">
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					<h2><i class="fa fa-flag-o red"></i><strong>User</strong></h2>
+				</div>
+				<div class="panel-body">
+					<table class="table bootstrap-datatable countries">
+						<tbody>
+							<tr>
+								<td>User Name</td>
+								<td>{{order.owner.username}}</td>
+							</tr>
+							<tr>
+								<td>Email</td>
+								<td>{{order.owner.email}}</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					<h2><i class="fa fa-flag-o red"></i><strong>Status</strong></h2>
+				</div>
+				<div class="panel-body">
+					<table class="table bootstrap-datatable countries">
+						<tbody>
+							<tr>
+								<td>Status</td>
+								<td>{{order.get_status_display}}</td>
+							</tr>
+							<tr>
+								<td>Create Time</td>
+								<td>{{order.create_time}}</td>
+							</tr>
+							<tr>
+								<td>Assigned Time</td>
+								<td>{{order.assign_time}}</td>
+							</tr>
+							<tr>
+								<td>Finish Time</td>
+								<td>{{order.finish_time}}</td>
+							</tr>
+							
+						</tbody>
+					</table>
+					<div class="row">
+						<div class="col-lg-6 col-md-6" align="center">
+							<button class="btn" onclick="changeStatus({{order.id}},'DL');">Finish</button>
+						</div>
+						<div class="col-lg-6 col-md-6" align="center">
+							<button class="btn" onclick="changeStatus({{order.id}},'EX');">Exception</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="col-lg-6 col-md-6">
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					<h2><i class="fa fa-flag-o red"></i><strong>Address</strong></h2>
+				</div>
+				<div class="panel-body">
+					<table class="table bootstrap-datatable countries">
+						<tbody>
+							<tr>
+								<td>Address 1</td>
+								<td>{{order.shipping_address.address_1}}</td>
+							</tr>
+							<tr>
+								<td>Address 2</td>
+								<td>{{order.shipping_address.address_2}}</td>
+							</tr>
+							<tr>
+								<td>City</td>
+								<td>{{order.shipping_address.city}}</td>
+							</tr>
+							<tr>
+								<td>State</td>
+								<td>{{order.shipping_address.state}}</td>
+							</tr>
+							<tr>
+								<td>Zip Code</td>
+								<td>{{order.shipping_address.zip_code}}</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+		<div class="col-lg-6 col-md-6">
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					<h2><i class="fa fa-flag-o red"></i><strong>Map</strong></h2>
+				</div>
+				<div class="panel-body" style="height: 350px;">
+					<div id="map" style="float:left;width:70%; height:100%;"></div>
+					<div id="directionsPanel" style="float:right;width:30%;height: 100%; overflow:scroll; padding: 5px;"></div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-lg-12 col-md-12">
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					<h2><i class="fa fa-flag-o red"></i><strong>Items</strong></h2>
+					<div class="panel-actions">
+						<a href="{{order.id}}" class="btn-setting"><i class="fa fa-rotate-right"></i></a>
+						<!-- <a href="index.html#" class="btn-minimize"><i class="fa fa-chevron-up"></i></a>
+						<a href="index.html#" class="btn-close"><i class="fa fa-times"></i></a> -->
+					</div>
+				</div>
+				<div class="panel-body">
+					<table class="table bootstrap-datatable countries">
+						<thead>
+							<tr>
+								<th>Item Name</th>
+								<th>Quantity</th>
+								<th>Price</th>
+								<th>Sum</th>
+								<th>Provider</th>
+							</tr>
+						</thead>
+						<tbody>
+							{% for item in order.cart.items.all %}
+								<tr>
+									<td>{{item.providership.product.name}}</td>
+									<td>{{item.number}}</td>
+									<td>{{item.providership.price}}</td>
+									<td>{% widthratio item.number 1 item.providership.price %}</td>
+									<td>{{item.providership.provider.name}}</td>
+									
+								</tr>
+							{% endfor %}
+						</tbody>
+						<thead>
+							<tr>
+								<th>Total</th>
+								<th></th>
+								<th></th>
+								<th>{{order.price}}</th>
+								<th></th>
+							</tr>
+						</thead>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+	
+{% endblock %}
