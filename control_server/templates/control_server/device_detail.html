@@ -47,40 +47,8 @@
 
 		}
 
-		function calcRoute() {
-		  	var start = '315 N Neville St Pittsburgh PA';
-
-		  	var way = []
-			{% for element in google_params.waypoints %}
-			way.push({location:"{{ element }}",stopover:true});
-			{% endfor %}
-
-		  	var request = {
-		  	    origin:start,
-				destination:'{{ google_params.destination }}',
-				travelMode: 'DRIVING',
-				waypoints: way,
-		  	};
-		  	directionsService.route(request, function(response, status) {
-				if (status == 'OK') {
-					directionsDisplay.setDirections(response);
-					var route = response.routes[0];
-					var summaryPanel = document.getElementById('directionsPanel');
-					summaryPanel.innerHTML = '';
-					// For each route, display summary information.
-					for (var i = 0; i < route.legs.length; i++) {
-                        var routeSegment = i + 1;
-                        summaryPanel.innerHTML += '<b>Route Segment: ' + routeSegment +
-                            '</b><br>';
-                        summaryPanel.innerHTML += route.legs[i].start_address + ' to ';
-                        summaryPanel.innerHTML += route.legs[i].end_address + '<br>';
-                        summaryPanel.innerHTML += route.legs[i].distance.text + '<br><br>';
-                    }
-				} else {
-				    window.alert('Directions request failed due to ' + status);
-				    console.log(response);
-				}
-		  	});
+		function eventClick(x,y){
+			map.setCenter({lat:x,lng:y});
 		}
 	</script>
 	<script async defer
@@ -136,27 +104,12 @@
 								<td>Event ID</td>
 								<td>Event Time</td>
 							</tr>
+							{% for event in device.events.all %}
 							<tr>
-								<td>Alarm Type</td>
-								<td>
-									<select id="device_assign_{{device.imei}}" onchange="selectHandler({{device.imei}})">
-										<option value="BL" onchange="selectHandler"
-											{% if not device.alarm_type or device.alarm_type == "BL" %}
-												selected="selected"
-											{% endif %}
-										>Block</option>
-										<option value="NT" onchange="selectHandler"
-											{% if device.alarm_type == "NT" %}
-												selected="selected"
-											{% endif %}
-										>Notification</option>
-									</select>
-								</td>
+								<td onclick="eventClick({{event.latitude}}, {{event.longitude}})">{{ event.id }}</td>
+								<td>{{ event.create_time }}</td>
 							</tr>
-							<tr>
-								<td>Last Update Time</td>
-								<td>{{device.last_modify_time}}</td>
-							</tr>
+							{% endfor %}
 						</tbody>
 					</table>
 				</div>
